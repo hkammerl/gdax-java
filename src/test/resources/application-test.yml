@@ -4,10 +4,10 @@
 gdax:
   api:
     baseUrl: "https://api.gdax.com/"
-  key: ""
-  secret: ""
-  passphrase: ""
-
+  key: "ef95afa0d42dca9c176738f7a29ab19b"
+  secret: "F9gmwtAZ7m+2eXhDaE4UzkhZZOhZ+d8Xk4x7gL5dKYFZvvLIxroeZ6lkb1gtzTyNELxFyjGss3dkBiqSiy2Jrw=="
+  passphrase: "l6q1ogqg4"
+  
 websocket:
   baseUrl: "wss://ws-feed.gdax.com/"
 
