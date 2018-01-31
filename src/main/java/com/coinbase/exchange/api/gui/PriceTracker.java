@@ -32,71 +32,87 @@ public class PriceTracker {
 
 	JFrame frame;
 
-    OrderService orderService;
+	OrderService orderService;
 
 	MarketDataService marketDataService;
 
 	JLabel prices;
 
+	boolean trading;
+	int historyLength;
+	double factor;
+	double spread;
+
 	@Autowired
-	public PriceTracker(@Value("${trader.enabled}") boolean enabled, MarketDataService marketDataService, OrderService orderService) {
+	public PriceTracker(@Value("${trader.enabled}") boolean enabled, @Value("${trader.trading}") boolean trading,
+			@Value("${trader.historyLength}") int historyLength, @Value("${trader.factor}") double factor, @Value("${trader.spread}") double spread,MarketDataService marketDataService,
+			OrderService orderService) {
 		log.info("Price Tracker Constructor ..." + enabled);
 		this.guiEnabled = enabled;
 		this.marketDataService = marketDataService;
 		this.orderService = orderService;
+		this.trading = trading;
+		this.historyLength = historyLength;
+		this.factor = factor;
+		this.spread = spread;
+		log.info("Trading: " + this.trading + ", HistoryLength: " + this.historyLength + ", Factor: " + this.factor + ", Spread: " + this.spread);
 		if (enabled) {
 			Run();
 		}
-		BigDecimal x = BigDecimal.valueOf(0.0);
-		x=x.add(BigDecimal.valueOf(1.0));
-		System.out.println(x);
-		System.out.println(x.add(BigDecimal.valueOf(1.0)));
-		System.out.println(x);
 	}
-    private NewMarketOrderSingle createNewMarketOrder(String product, String action, BigDecimal size){
-        NewMarketOrderSingle marketOrder = new NewMarketOrderSingle();
-        marketOrder.setProduct_id(product);
-        marketOrder.setSide(action);
-        marketOrder.setSize(size);
-        return marketOrder;
-    }
-	
-    public BigDecimal createMarketOrderBuy(){
-        NewMarketOrderSingle marketOrder = createNewMarketOrder("BTC-EUR", "buy", new BigDecimal(0.001));
-        Order order = orderService.createOrder(marketOrder);
 
-        assertTrue(order != null); //make sure we created an order
-        String orderId = order.getId();
-        assertTrue(orderId.length() > 0); //ensure we have an actual orderId
-        Order filledOrder = orderService.getOrder(orderId);
-        assertTrue(filledOrder != null); //ensure our order hit the system
-        assertTrue(new BigDecimal(filledOrder.getSize()).compareTo(BigDecimal.ZERO) > 0); //ensure we got a fill
-        log.info("Order opened and filled: " + filledOrder.getSize() + " @ " + filledOrder.getExecuted_value()
-             + " at the cost of " + filledOrder.getFill_fees());
-        return BigDecimal.valueOf(Double.parseDouble(filledOrder.getFill_fees()));        
-   }
-    
+	private NewMarketOrderSingle createNewMarketOrder(String product, String action, BigDecimal size) {
+		NewMarketOrderSingle marketOrder = new NewMarketOrderSingle();
+		marketOrder.setProduct_id(product);
+		marketOrder.setSide(action);
+		marketOrder.setSize(size);
+		return marketOrder;
+	}
 
-    public BigDecimal createMarketOrderSell(){
-        NewMarketOrderSingle marketOrder = createNewMarketOrder("BTC-EUR", "sell", new BigDecimal(0.001));
-        Order order = orderService.createOrder(marketOrder);
-        assertTrue(order != null); //make sure we created an order
-        String orderId = order.getId();
-        assertTrue(orderId.length() > 0); //ensure we have an actual orderId
-        Order filledOrder = orderService.getOrder(orderId);
-        assertTrue(filledOrder != null); //ensure our order hit the system
-        assertTrue(new BigDecimal(filledOrder.getSize()).compareTo(BigDecimal.ZERO) > 0); //ensure we got a fill
-        log.info("Order opened and filled: " + filledOrder.getSize() + " @ " + filledOrder.getExecuted_value()
-                + " at the cost of " + filledOrder.getFill_fees());
-        return BigDecimal.valueOf(Double.parseDouble(filledOrder.getFill_fees()));
-    }
+	public BigDecimal createMarketOrderBuy() {
+		if (trading) {
+			NewMarketOrderSingle marketOrder = createNewMarketOrder("BTC-EUR", "buy", new BigDecimal(0.001));
+			Order order = orderService.createOrder(marketOrder);
 
+			assertTrue(order != null); // make sure we created an order
+			String orderId = order.getId();
+			assertTrue(orderId.length() > 0); // ensure we have an actual orderId
+			Order filledOrder = orderService.getOrder(orderId);
+			assertTrue(filledOrder != null); // ensure our order hit the system
+			assertTrue(new BigDecimal(filledOrder.getSize()).compareTo(BigDecimal.ZERO) > 0); // ensure we got a fill
+			log.info("Order opened and filled: " + filledOrder.getSize() + " @ " + filledOrder.getExecuted_value()
+					+ " at the cost of " + filledOrder.getFill_fees());
+			return BigDecimal.valueOf(Double.parseDouble(filledOrder.getFill_fees()));
+		} else {
+			//return BigDecimal.valueOf(0.02).divide(BigDecimal.valueOf(factor));
+			return BigDecimal.valueOf(spread);
+		}
+	}
+
+	public BigDecimal createMarketOrderSell() {
+		if (trading) {
+			NewMarketOrderSingle marketOrder = createNewMarketOrder("BTC-EUR", "sell", new BigDecimal(0.001));
+			Order order = orderService.createOrder(marketOrder);
+			assertTrue(order != null); // make sure we created an order
+			String orderId = order.getId();
+			assertTrue(orderId.length() > 0); // ensure we have an actual orderId
+			Order filledOrder = orderService.getOrder(orderId);
+			assertTrue(filledOrder != null); // ensure our order hit the system
+			assertTrue(new BigDecimal(filledOrder.getSize()).compareTo(BigDecimal.ZERO) > 0); // ensure we got a fill
+			log.info("Order opened and filled: " + filledOrder.getSize() + " @ " + filledOrder.getExecuted_value()
+					+ " at the cost of " + filledOrder.getFill_fees());
+			return BigDecimal.valueOf(Double.parseDouble(filledOrder.getFill_fees()));
+		} else {
+			//return BigDecimal.valueOf(0.02).divide(BigDecimal.valueOf(factor));
+			return BigDecimal.valueOf(spread);
+		}
+	}
 
 	public void Run() {
 		try {
-			History history = new History(60);
-			int StatusLong = 0;
-			int StatusShort = 0;
+			History history = new History(historyLength);
+			int LongStatus = 0;
+			int ShortStatus = 0;
 			BigDecimal LongBuy = BigDecimal.valueOf(0.0);
 			BigDecimal LongSell = BigDecimal.valueOf(0.0);
 			BigDecimal ShortBuy = BigDecimal.valueOf(0.0);
@@ -104,49 +120,81 @@ public class PriceTracker {
 			BigDecimal Long = BigDecimal.valueOf(0.0);
 			BigDecimal Short = BigDecimal.valueOf(0.0);
 			BigDecimal LongFees = BigDecimal.valueOf(0.0);
-			BigDecimal ShortFees = BigDecimal.valueOf(0.0);			
+			BigDecimal ShortFees = BigDecimal.valueOf(0.0);
+			BigDecimal lastBtcAsk = BigDecimal.valueOf(0.0);
+			BigDecimal LongStop = BigDecimal.valueOf(0.0);
+			BigDecimal ShortStop = BigDecimal.valueOf(0.0);
 			
-			for (int ind = 0; ind < 10000; ind++) {
-				BigDecimal btcAsk = this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0).getPrice().divide(BigDecimal.valueOf(1000.0));
+			int LongTrades = 0;
+			int ShortTrades = 0;
+
+			for (int ind = 0; ind >= 0; ind++) {
+				BigDecimal btcAsk = this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0)
+						.getPrice();
 				history.Add(btcAsk);
 				BigDecimal down = btcAsk.subtract(history.MinElement());
 				BigDecimal up = history.MaxElement().subtract(btcAsk);
+				if (btcAsk.subtract(BigDecimal.valueOf(spread)).compareTo(LongStop) == 1) {
+					ShortStop = btcAsk.add(BigDecimal.valueOf(spread));
+				}
+				if (btcAsk.add(BigDecimal.valueOf(spread)).compareTo(ShortStop) == -1) {
+					ShortStop = btcAsk.subtract(BigDecimal.valueOf(spread));
+				}
+				if (lastBtcAsk.compareTo(btcAsk) != 0) {
+					lastBtcAsk = btcAsk;
+					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: "
+							+ down.doubleValue() + ", Max:  " + up.doubleValue() + ", Long-STOP: " + LongStop + ", Short-STOP: " + ShortStop + " - Iteration: " + ind);
+				}
 				if (ind % 50 == 0) {
-						log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: " + down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
-				}						
-				if (ind > 10 && StatusLong == 0 && down.compareTo(up)==1) {
-					StatusLong = 1;
+					log.info("### LONG  TRADES - Status: " + LongStatus + ", Trades: " + LongTrades + ", Win: " + Long + ", Fees: " + LongFees + ", Total: " + Long.subtract(LongFees) + ", Value: " + LongBuy + ", Stop: " + LongStop);
+					log.info("### SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", Win: " + Short + ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees)+ ", Value: " + ShortSell + ", Stop: " + ShortStop);
+				}
+				if (LongStatus == 0 && down.compareTo(up) == 1 && down.add(up).doubleValue() > spread) {
+					LongStatus = 1;
+					LongTrades = LongTrades + 1;
 					LongBuy = btcAsk;
-					LongFees.add(createMarketOrderBuy());
-					log.info("Long-BUY: " + LongBuy);
-					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: " + down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
+					LongStop = LongBuy.subtract(BigDecimal.valueOf(spread));
+					LongFees = LongFees.add(createMarketOrderBuy());
+					log.info("Long-BUY: " + LongBuy + ", Long-STOP: " + LongStop);
+					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: "
+							+ down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
 
 				}
-				if (StatusLong == 1 && down.compareTo(BigDecimal.valueOf(0.0))==0) {
-					StatusLong = 0;
+				if (LongStatus == 1 && btcAsk.compareTo(LongStop) == -1) {
+					LongStatus = 0;
+					LongTrades = LongTrades + 1;
 					LongSell = btcAsk;
 					Long = Long.add(LongSell.subtract(LongBuy));
-					LongFees = LongFees.add(createMarketOrderSell());					
-					log.info("Long-SOLD: " + LongSell + ", RESULT = " + LongSell.subtract(LongBuy) + ", Long-SubTotal: " + Long + ", Long-Fees: " + LongFees + ", Long-TOTAL: " + Long.subtract(LongFees));
-					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: " + down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
+					LongFees = LongFees.add(createMarketOrderSell());
+					log.info("Long-SOLD: " + LongSell + ", RESULT = " + LongSell.subtract(LongBuy) + ", Long-SubTotal: "
+							+ Long + ", Long-Fees: " + LongFees + ", Long-TOTAL: " + Long.subtract(LongFees));
+					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: "
+							+ down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
 				}
 
-				if (ind > 10 && StatusShort == 0 && down.compareTo(up)==-1) {
-					StatusShort = 1;
+				if (ShortStatus == 0 && down.compareTo(up) == -1 && down.add(up).doubleValue() > spread) {
+					ShortStatus = 1;
+					ShortTrades = ShortTrades + 1;
 					ShortSell = btcAsk;
-					ShortFees = ShortFees.add(createMarketOrderSell());					
-					log.info("Short-SELL: " + ShortSell);
-					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: " + down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
+					ShortStop = ShortSell.add(BigDecimal.valueOf(spread));
+					ShortFees = ShortFees.add(createMarketOrderSell());
+					log.info("Short-SELL: " + ShortSell + ", Short-STOP: " + ShortStop);
+					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: "
+							+ down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
 				}
-				if (StatusShort == 1 && up.compareTo(BigDecimal.valueOf(0.0))==0) {
-					StatusShort = 0;
+				if (ShortStatus == 1 && btcAsk.compareTo(ShortStop) == 1) {
+					ShortStatus = 0;
+					ShortTrades = ShortTrades + 1;
 					ShortBuy = btcAsk;
 					Short = Short.add(ShortSell.subtract(ShortBuy));
 					ShortFees = ShortFees.add(createMarketOrderBuy());
-					log.info("Short-BOUGHT: " + ShortBuy + ", RESULT = " + ShortSell.subtract(ShortBuy) + ", Short-SubTotal: " + Short + ", Short-Fees: " + ShortFees + ", Short-TOTAL: " + Short.subtract(ShortFees));
-					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: " + down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
+					log.info("Short-BOUGHT: " + ShortBuy + ", RESULT = " + ShortSell.subtract(ShortBuy)
+							+ ", Short-SubTotal: " + Short + ", Short-Fees: " + ShortFees + ", Short-TOTAL: "
+							+ Short.subtract(ShortFees));
+					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: "
+							+ down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
 				}
-				
+
 				Thread.sleep(1000);
 			}
 		} catch (InterruptedException e) {

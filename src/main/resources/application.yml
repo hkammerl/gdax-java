@@ -13,3 +13,7 @@ gui:
   
 trader:
   enabled: true
+  trading: false
+  historyLength: 600
+  factor: 0.001
+  spread: 5
