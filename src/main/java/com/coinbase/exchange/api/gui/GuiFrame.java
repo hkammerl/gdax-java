@@ -2,6 +2,7 @@ package com.coinbase.exchange.api.gui;
 
 
 import com.coinbase.exchange.api.gui.orderbook.OrderBookView;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,8 @@ public class GuiFrame {
 
     @Autowired
     public GuiFrame(@Value("${gui.enabled}") boolean guiEnabled, OrderBookView orderBook) {
-            this.orderBook = orderBook;
+    		log.info("GuiFrame Constructor");
+    		this.orderBook = orderBook;
             this.guiEnabled = guiEnabled;
         if (guiEnabled) {
             startGui();
@@ -35,6 +37,7 @@ public class GuiFrame {
     }
 
     public void startGui() {
+    	log.info("Start GUI - GuiFrame");
         if (guiEnabled) {
             frame = new JFrame("Gdax Desktop Client");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

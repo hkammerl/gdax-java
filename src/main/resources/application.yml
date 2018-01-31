@@ -10,3 +10,6 @@ websocket:
 
 gui:
   enabled: false
+  
+trader:
+  enabled: true

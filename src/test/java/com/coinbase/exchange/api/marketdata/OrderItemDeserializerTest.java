@@ -1,4 +1,4 @@
-package com.coinbase.exchange.api.MarketData;
+package com.coinbase.exchange.api.marketdata;
 
 import com.coinbase.exchange.api.marketdata.MarketData;
 import com.fasterxml.jackson.databind.ObjectMapper;

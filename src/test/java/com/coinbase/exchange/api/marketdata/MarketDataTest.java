@@ -1,4 +1,4 @@
-package com.coinbase.exchange.api.MarketData;
+package com.coinbase.exchange.api.marketdata;
 
 import com.coinbase.exchange.api.BaseTest;
 import com.coinbase.exchange.api.marketdata.MarketData;
@@ -19,7 +19,8 @@ public class MarketDataTest extends BaseTest {
     @Test
     public void canGetMarketDataForLevelOneBidAndAsk() {
         MarketData marketData = marketDataService.getMarketDataOrderBook("BTC-GBP", "1");
-        System.out.println(marketData);
+        System.out.println("...");
+        System.out.println(marketData.toString());
         assertTrue(marketData.getSequence() > 0);
     }
 
