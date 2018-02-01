@@ -1,7 +1,10 @@
 package com.coinbase.exchange.api.gui;
 
 import com.coinbase.exchange.api.GdaxApiApplication;
+import com.coinbase.exchange.api.accounts.Account;
+import com.coinbase.exchange.api.entity.NewLimitOrderSingle;
 import com.coinbase.exchange.api.entity.NewMarketOrderSingle;
+import com.coinbase.exchange.api.marketdata.MarketData;
 import com.coinbase.exchange.api.marketdata.MarketDataService;
 import com.coinbase.exchange.api.orders.Order;
 import com.coinbase.exchange.api.orders.OrderService;
@@ -16,8 +19,11 @@ import org.springframework.stereotype.Component;
 import javax.swing.*;
 import java.awt.*;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
 
 import static com.coinbase.exchange.api.GdaxApiApplication.SYSTEM_PROPERTY_JAVA_AWT_HEADLESS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -61,6 +67,25 @@ public class PriceTracker {
 		}
 	}
 
+    private NewLimitOrderSingle getNewLimitOrderSingle(String BuyOrSell, String productId, BigDecimal price, BigDecimal size) {
+        NewLimitOrderSingle limitOrder = new NewLimitOrderSingle();
+        limitOrder.setProduct_id(productId);
+        limitOrder.setSide(BuyOrSell);
+        limitOrder.setType("limit");
+        limitOrder.setPrice(price);
+        limitOrder.setSize(size);
+        limitOrder.setPost_only(false);
+        return limitOrder;
+    }
+	
+    public BigDecimal CreateLimitOrder(String BuyOrSell, BigDecimal price, BigDecimal size) {
+        NewLimitOrderSingle limitOrder = getNewLimitOrderSingle(BuyOrSell, "BTC-EUR", price, size);
+        Order order = orderService.createOrder(limitOrder);
+        log.info("Limit Order :" + order.toString() + " - " + order.getFilled_size() + " - " + order.getStatus() + "-" + order.getPrice() + " - " + order.getSettled());
+		return BigDecimal.valueOf(Double.parseDouble(order.getFill_fees()));
+        }
+    
+	
 	private NewMarketOrderSingle createNewMarketOrder(String product, String action, BigDecimal size) {
 		NewMarketOrderSingle marketOrder = new NewMarketOrderSingle();
 		marketOrder.setProduct_id(product);
@@ -122,77 +147,104 @@ public class PriceTracker {
 			BigDecimal LongFees = BigDecimal.valueOf(0.0);
 			BigDecimal ShortFees = BigDecimal.valueOf(0.0);
 			BigDecimal lastBtcAsk = BigDecimal.valueOf(0.0);
-			BigDecimal LongStop = BigDecimal.valueOf(0.0);
+			BigDecimal LongStop = BigDecimal.valueOf(10000000.0);
 			BigDecimal ShortStop = BigDecimal.valueOf(0.0);
+			BigDecimal Avg = BigDecimal.valueOf(0.0);
+			BigDecimal AvgPercentage = BigDecimal.valueOf(0.0);
+			BigDecimal AvgOld = BigDecimal.valueOf(0.0);
+			int LongShort = 0;
+			BigDecimal AskAvgSpread = BigDecimal.valueOf(0.0);
+			
 			
 			int LongTrades = 0;
 			int ShortTrades = 0;
 
+			//CreateLimitOrder("buy", BigDecimal.valueOf(7240.0), BigDecimal.valueOf(0.001));
+			//CreateLimitOrder("sell", BigDecimal.valueOf(5000.0), BigDecimal.valueOf(0.001));
+			
 			for (int ind = 0; ind >= 0; ind++) {
 				BigDecimal btcAsk = this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0)
 						.getPrice();
 				history.Add(btcAsk);
 				BigDecimal down = btcAsk.subtract(history.MinElement());
 				BigDecimal up = history.MaxElement().subtract(btcAsk);
-				if (btcAsk.subtract(BigDecimal.valueOf(spread)).compareTo(LongStop) == 1) {
+				AvgOld = Avg;
+				Avg = history.Avg();
+				AvgPercentage = history.AvgLastPercentage(0.1);
+				AskAvgSpread = AvgPercentage.subtract(Avg);
+				LongShort = Avg.compareTo(AvgOld);
+				
+				if (LongStatus == 1 && btcAsk.subtract(BigDecimal.valueOf(spread)).compareTo(LongStop) == 1) {
+					LongStop = btcAsk.subtract(BigDecimal.valueOf(spread));
+					//log.info("# Stop-Long  - book: " + btcAsk.subtract(LongBuy) + ", Fix: " + LongStop.subtract(LongBuy)); 
+				}
+				if (ShortStatus == 1 && btcAsk.add(BigDecimal.valueOf(spread)).compareTo(ShortStop) == -1) {
 					ShortStop = btcAsk.add(BigDecimal.valueOf(spread));
+					//log.info("# Stop-Short - book: " + ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop)); 
 				}
-				if (btcAsk.add(BigDecimal.valueOf(spread)).compareTo(ShortStop) == -1) {
-					ShortStop = btcAsk.subtract(BigDecimal.valueOf(spread));
-				}
-				if (lastBtcAsk.compareTo(btcAsk) != 0) {
+				if (ind == 0) {
 					lastBtcAsk = btcAsk;
-					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: "
+					log.info("LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: " + btcAsk.doubleValue() + ", AvgP: " + AvgPercentage + ", Avg: " + Avg + ", AvgOld: "+ AvgOld + ", Min: "
 							+ down.doubleValue() + ", Max:  " + up.doubleValue() + ", Long-STOP: " + LongStop + ", Short-STOP: " + ShortStop + " - Iteration: " + ind);
 				}
-				if (ind % 50 == 0) {
-					log.info("### LONG  TRADES - Status: " + LongStatus + ", Trades: " + LongTrades + ", Win: " + Long + ", Fees: " + LongFees + ", Total: " + Long.subtract(LongFees) + ", Value: " + LongBuy + ", Stop: " + LongStop);
-					log.info("### SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", Win: " + Short + ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees)+ ", Value: " + ShortSell + ", Stop: " + ShortStop);
+				if (ind == 0) {
+					log.info("LONG  TRADES - Status: " + LongStatus + ", Trades: " + LongTrades + ", book: " + btcAsk.subtract(LongBuy) + ", Fix: " + LongStop.subtract(LongBuy) + ", Win: " + Long + ", Fees: " + LongFees + ", Total: " + Long.subtract(LongFees) + ", Value: " + LongBuy + ", Stop: " + LongStop + " -- " + ind);
+					log.info("SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", book: " + ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop) + ", Win: " + Short + ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees)+ ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- " + ind);
 				}
-				if (LongStatus == 0 && down.compareTo(up) == 1 && down.add(up).doubleValue() > spread) {
+				// LONG - TRADES 
+				if (ind > historyLength && LongStatus == 0 && LongShort == 1 && AskAvgSpread.longValue() > spread) {
 					LongStatus = 1;
 					LongTrades = LongTrades + 1;
 					LongBuy = btcAsk;
 					LongStop = LongBuy.subtract(BigDecimal.valueOf(spread));
 					LongFees = LongFees.add(createMarketOrderBuy());
-					log.info("Long-BUY: " + LongBuy + ", Long-STOP: " + LongStop);
-					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: "
-							+ down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
+					//LongFees = LongFees.add(CreateLimitOrder("buy", LongBuy, BigDecimal.valueOf(0.001)));
+					log.info("++ Long-BUY: " + LongBuy + ", Long-STOP: " + LongStop);
+					log.info("++ LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: " + btcAsk.doubleValue() + ", Avg: " + Avg + ", AvgOld: "+ AvgOld + ", Min: "
+							+ down.doubleValue() + ", Max:  " + up.doubleValue() + ", Long-STOP: " + LongStop + ", Short-STOP: " + ShortStop + " - Iteration: " + ind);
+					log.info("++ LONG  TRADES - Status: " + LongStatus + ", Trades: " + LongTrades + ", book: " + btcAsk.subtract(LongBuy) + ", Fix: " + LongStop.subtract(LongBuy) + ", Win: " + Long + ", Fees: " + LongFees + ", Total: " + Long.subtract(LongFees) + ", Value: " + LongBuy + ", Stop: " + LongStop + " -- " + ind);
+					log.info("++ SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", book: " + ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop) + ", Win: " + Short + ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees)+ ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- " + ind);
 
 				}
-				if (LongStatus == 1 && btcAsk.compareTo(LongStop) == -1) {
+				if (LongStatus == 1 && btcAsk.compareTo(LongStop) == -1 && AskAvgSpread.longValue() < 0.0) {
 					LongStatus = 0;
 					LongTrades = LongTrades + 1;
 					LongSell = btcAsk;
 					Long = Long.add(LongSell.subtract(LongBuy));
 					LongFees = LongFees.add(createMarketOrderSell());
-					log.info("Long-SOLD: " + LongSell + ", RESULT = " + LongSell.subtract(LongBuy) + ", Long-SubTotal: "
+					log.info("## Long-SOLD: " + LongSell + ", RESULT = " + LongSell.subtract(LongBuy) + ", Long-SubTotal: "
 							+ Long + ", Long-Fees: " + LongFees + ", Long-TOTAL: " + Long.subtract(LongFees));
-					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: "
-							+ down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
+					log.info("## LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: " + btcAsk.doubleValue() + ", Avg: " + Avg + ", AvgOld: "+ AvgOld + ", Min: "
+							+ down.doubleValue() + ", Max:  " + up.doubleValue() + ", Long-STOP: " + LongStop + ", Short-STOP: " + ShortStop + " - Iteration: " + ind);
+					log.info("## LONG  TRADES - Status: " + LongStatus + ", Trades: " + LongTrades + ", book: " + btcAsk.subtract(LongBuy) + ", Fix: " + LongStop.subtract(LongBuy) + ", Win: " + Long + ", Fees: " + LongFees + ", Total: " + Long.subtract(LongFees) + ", Value: " + LongBuy + ", Stop: " + LongStop + " -- " + ind);
+					log.info("## SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", book: " + ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop) + ", Win: " + Short + ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees)+ ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- " + ind);
 				}
-
-				if (ShortStatus == 0 && down.compareTo(up) == -1 && down.add(up).doubleValue() > spread) {
+				// SHORT - TRADES
+				if (ind > historyLength && ShortStatus == 0 && LongShort == -1 && AskAvgSpread.longValue() < (-1.0)*spread) {
 					ShortStatus = 1;
 					ShortTrades = ShortTrades + 1;
 					ShortSell = btcAsk;
 					ShortStop = ShortSell.add(BigDecimal.valueOf(spread));
 					ShortFees = ShortFees.add(createMarketOrderSell());
-					log.info("Short-SELL: " + ShortSell + ", Short-STOP: " + ShortStop);
-					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: "
-							+ down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
+					log.info("-- Short-SELL: " + ShortSell + ", Short-STOP: " + ShortStop);
+					log.info("-- LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: " + btcAsk.doubleValue() + ", Avg: " + Avg + ", AvgOld: "+ AvgOld + ", Min: "
+							+ down.doubleValue() + ", Max:  " + up.doubleValue() + ", Long-STOP: " + LongStop + ", Short-STOP: " + ShortStop + " - Iteration: " + ind);
+					log.info("-- LONG  TRADES - Status: " + LongStatus + ", Trades: " + LongTrades + ", book: " + btcAsk.subtract(LongBuy) + ", Fix: " + LongStop.subtract(LongBuy) + ", Win: " + Long + ", Fees: " + LongFees + ", Total: " + Long.subtract(LongFees) + ", Value: " + LongBuy + ", Stop: " + LongStop + " -- " + ind);
+					log.info("-- SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", book: " + ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop) + ", Win: " + Short + ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees)+ ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- " + ind);
 				}
-				if (ShortStatus == 1 && btcAsk.compareTo(ShortStop) == 1) {
+				if (ShortStatus == 1 && btcAsk.compareTo(ShortStop) == 1 && AskAvgSpread.longValue() > 0.0) {
 					ShortStatus = 0;
 					ShortTrades = ShortTrades + 1;
 					ShortBuy = btcAsk;
 					Short = Short.add(ShortSell.subtract(ShortBuy));
 					ShortFees = ShortFees.add(createMarketOrderBuy());
-					log.info("Short-BOUGHT: " + ShortBuy + ", RESULT = " + ShortSell.subtract(ShortBuy)
+					log.info("## Short-BOUGHT: " + ShortBuy + ", RESULT = " + ShortSell.subtract(ShortBuy)
 							+ ", Short-SubTotal: " + Short + ", Short-Fees: " + ShortFees + ", Short-TOTAL: "
 							+ Short.subtract(ShortFees));
-					log.info("Prize: " + btcAsk.doubleValue() + ", Avg: " + history.Avg().doubleValue() + ", Min: "
-							+ down.doubleValue() + ", Max:  " + up.doubleValue() + " - Iteration: " + ind);
+					log.info("## LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: " + btcAsk.doubleValue() + ", Avg: " + Avg + ", AvgOld: "+ AvgOld + ", Min: "
+							+ down.doubleValue() + ", Max:  " + up.doubleValue() + ", Long-STOP: " + LongStop + ", Short-STOP: " + ShortStop + " - Iteration: " + ind);
+					log.info("## LONG  TRADES - Status: " + LongStatus + ", Trades: " + LongTrades + ", book: " + btcAsk.subtract(LongBuy) + ", Fix: " + LongStop.subtract(LongBuy) + ", Win: " + Long + ", Fees: " + LongFees + ", Total: " + Long.subtract(LongFees) + ", Value: " + LongBuy + ", Stop: " + LongStop + " -- " + ind);
+					log.info("## SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", book: " + ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop) + ", Win: " + Short + ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees)+ ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- " + ind);
 				}
 
 				Thread.sleep(1000);

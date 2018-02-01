@@ -58,6 +58,16 @@ public class History {
 		return sum.divide(BigDecimal.valueOf(history.size()),1);
 	}
 	
+	public BigDecimal AvgLastPercentage(double p) {
+		BigDecimal sum = BigDecimal.valueOf(0.0);
+		int ind;
+		double max = history.size()*p;
+		for (ind=0; ind < max; ind++) {
+			sum = sum.add(history.get(history.size()-1-ind));
+		}
+		return sum.divide(BigDecimal.valueOf(ind),1);
+	}
+	
 	public int Size() {
 		return history.size();
 	}
