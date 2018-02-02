@@ -84,7 +84,6 @@ public class OrderTests extends BaseTest {
         assertEquals(size, new BigDecimal(order.getSize()).setScale(8, BigDecimal.ROUND_HALF_UP));
         assertEquals(price, new BigDecimal(order.getPrice()).setScale(8, BigDecimal.ROUND_HALF_UP));
         assertEquals("limit", order.getType());
-
         orderService.cancelOrder(order.getId());
         List<Order> orders = orderService.getOpenOrders();
         orders.stream().forEach(o -> assertTrue(o.getId() != order.getId()));
