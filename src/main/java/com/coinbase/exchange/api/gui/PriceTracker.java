@@ -123,7 +123,7 @@ public class PriceTracker {
 					.divide(BigDecimal.valueOf(factor));
 		} else {
 			// return BigDecimal.valueOf(0.02).divide(BigDecimal.valueOf(factor));
-			return BigDecimal.valueOf(spread);
+			return this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0).getPrice().multiply(BigDecimal.valueOf(0.0025));
 		}
 	}
 
@@ -143,7 +143,7 @@ public class PriceTracker {
 					.divide(BigDecimal.valueOf(factor));
 		} else {
 			// return BigDecimal.valueOf(0.02).divide(BigDecimal.valueOf(factor));
-			return BigDecimal.valueOf(spread);
+			return this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0).getPrice().multiply(BigDecimal.valueOf(0.0025));
 		}
 	}
 
@@ -214,6 +214,25 @@ public class PriceTracker {
 				AskAvgSpread = AvgPercentage.subtract(Avg);
 				LongShort = Avg.compareTo(AvgOld);
 
+				
+				// STOP - VALUES
+				if (LongStatus == 1 && Avg.compareTo(LongStop) == 1) { // (LongStatus == 1 &&
+																		// btcAsk.subtract(BigDecimal.valueOf(spread)).compareTo(LongStop)
+																		// == 1) {
+					LongStop = Avg;
+					// log.info("# Stop-Long: " + LongStop + ", book: " + btcAsk.subtract(LongBuy) +
+					// ", Fix: "
+					// + LongStop.subtract(LongBuy));
+				}
+				if (ShortStatus == 1 && Avg.compareTo(ShortStop) == -1) { // (ShortStatus == 1 &&
+																			// btcAsk.add(BigDecimal.valueOf(spread)).compareTo(ShortStop)
+																			// == -1) {
+					ShortStop = Avg;
+					// log.info("# Stop-Short: " + ShortStop + ", book: " +
+					// ShortSell.subtract(btcAsk) + ", Fix: "
+					// + ShortSell.subtract(ShortStop));
+				}
+
 				// TRACING
 				if (ind % 10 == 0) { // && btcAsk.compareTo(lastBtcAsk) != 0) {
 					lastBtcAsk = btcAsk;
@@ -234,24 +253,7 @@ public class PriceTracker {
 							+ TradeStart.subtract(btcAsk) + ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- "
 							+ ind);
 				}
-				
-				// STOP - VALUES
-				if (LongStatus == 1 && Avg.compareTo(LongStop) == 1) { // (LongStatus == 1 &&
-																		// btcAsk.subtract(BigDecimal.valueOf(spread)).compareTo(LongStop)
-																		// == 1) {
-					LongStop = Avg;
-					// log.info("# Stop-Long: " + LongStop + ", book: " + btcAsk.subtract(LongBuy) +
-					// ", Fix: "
-					// + LongStop.subtract(LongBuy));
-				}
-				if (ShortStatus == 1 && Avg.compareTo(ShortStop) == -1) { // (ShortStatus == 1 &&
-																			// btcAsk.add(BigDecimal.valueOf(spread)).compareTo(ShortStop)
-																			// == -1) {
-					ShortStop = Avg;
-					// log.info("# Stop-Short: " + ShortStop + ", book: " +
-					// ShortSell.subtract(btcAsk) + ", Fix: "
-					// + ShortSell.subtract(ShortStop));
-				}
+
 				// LONG - TRADES
 				if (longMarket && ind > historyLength && LongStatus == 0 && LongShort == 1
 						&& AskAvgSpread.longValue() > spread) {
