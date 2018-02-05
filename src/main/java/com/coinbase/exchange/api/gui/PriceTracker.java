@@ -234,7 +234,7 @@ public class PriceTracker {
 				}
 
 				// TRACING
-				if (ind % 10 == 0) { // && btcAsk.compareTo(lastBtcAsk) != 0) {
+				if (ind < 0) { // && btcAsk.compareTo(lastBtcAsk) != 0) {
 					lastBtcAsk = btcAsk;
 					log.info("LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: "
 							+ btcAsk.doubleValue() + ", AvgP: " + AvgPercentage + ", Avg: " + Avg + ", AvgOld: "
