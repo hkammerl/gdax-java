@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static com.coinbase.exchange.api.GdaxApiApplication.SYSTEM_PROPERTY_JAVA_AWT_HEADLESS;
 import static org.junit.Assert.assertEquals;
@@ -180,7 +181,6 @@ public class PriceTracker {
 			// BigDecimal.valueOf(0.001));
 			// CreateLimitOrder("sell", BigDecimal.valueOf(5000.0),
 			// BigDecimal.valueOf(0.001));
-			log.info("PriceTracker - RUN");
 			// log.info("Create Limit Order");
 			// Order o = CreateLimitOrder("buy",
 			// BigDecimal.valueOf(2000.0),BigDecimal.valueOf(0.001));
@@ -193,7 +193,13 @@ public class PriceTracker {
 			Instant start;
 			Instant stop;
 			long gap;
+
+			String runId = UUID.randomUUID().toString();		
+
+			log.info("PriceTracker - RUN: " + runId);
+			
 			for (int ind = 0; ind >= 0; ind++) {
+
 				start = Instant.now();
 				BigDecimal btcAsk = this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0)
 						.getPrice();
