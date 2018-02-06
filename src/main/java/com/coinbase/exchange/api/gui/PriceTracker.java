@@ -21,6 +21,7 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -171,6 +172,7 @@ public class PriceTracker {
 			int LongShort = 0;
 			BigDecimal AskAvgSpread = BigDecimal.valueOf(0.0);
 			boolean StopOrderActive = false;
+			BigDecimal fee = BigDecimal.valueOf(0.0);
 
 			int LongTrades = 0;
 			int ShortTrades = 0;
@@ -193,8 +195,11 @@ public class PriceTracker {
 			Instant start;
 			Instant stop;
 			long gap;
+			MySql mySql = new MySql();
+			mySql.OpenDB();
 
-			String runId = UUID.randomUUID().toString();		
+			String runId = UUID.randomUUID().toString();
+			String transactionId = "";
 
 			log.info("PriceTracker - RUN: " + runId);
 			
@@ -203,6 +208,7 @@ public class PriceTracker {
 				start = Instant.now();
 				BigDecimal btcAsk = this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0)
 						.getPrice();
+				mySql.InsertPrice(runId, ind, "BTC", btcAsk.floatValue());
 				history.Add(btcAsk);
 				BigDecimal down = btcAsk.subtract(history.MinElement());
 				BigDecimal up = history.MaxElement().subtract(btcAsk);
@@ -250,12 +256,15 @@ public class PriceTracker {
 				// LONG - TRADES
 				if (longMarket && ind > historyLength && LongStatus == 0 && LongShort == 1
 						&& AskAvgSpread.longValue() > spread) {
+					transactionId = UUID.randomUUID().toString();					
 					LongStatus = 1;
 					LongTrades = LongTrades + 1;
 					LongBuy = btcAsk;
 					// LongStop = LongBuy.subtract(BigDecimal.valueOf(spread));
 					LongStop = Avg;
-					LongFees = LongFees.add(createMarketOrderBuy());
+					fee = createMarketOrderBuy();
+					LongFees = LongFees.add(fee);
+					mySql.LogTransaction(1, runId, ind, transactionId, "BUY", fee.floatValue());
 					log.info("++ Long-BUY: " + LongBuy + ", Long-STOP: " + LongStop);
 					log.info("++ LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: "
 							+ btcAsk.doubleValue() + ", Avg: " + Avg + ", AvgOld: " + AvgOld + ", Min: "
@@ -280,8 +289,11 @@ public class PriceTracker {
 					LongTrades = LongTrades + 1;
 					LongSell = btcAsk;
 					Long = Long.add(btcAsk.subtract(LongBuy));
-					LongFees = LongFees.add(createMarketOrderSell());
 					LongStop = BigDecimal.valueOf(0);
+					fee = createMarketOrderSell();
+					LongFees = LongFees.add(fee);
+					mySql.LogTransaction(1, runId, ind, transactionId, "SELL", fee.floatValue());
+					
 					log.info("## Long-SOLD: " + LongSell + ", RESULT = " + LongSell.subtract(LongBuy)
 							+ ", Long-SubTotal: " + Long + ", Long-Fees: " + LongFees + ", Long-TOTAL: "
 							+ Long.subtract(LongFees));
@@ -303,11 +315,14 @@ public class PriceTracker {
 				// SHORT - TRADES
 				if (shortMarket && ind > historyLength && ShortStatus == 0 && LongShort == -1
 						&& AskAvgSpread.longValue() < (-1.0) * spread) {
+					transactionId = UUID.randomUUID().toString();					
 					ShortStatus = 1;
 					ShortTrades = ShortTrades + 1;
 					ShortSell = btcAsk;
 					ShortStop = Avg;
-					ShortFees = ShortFees.add(createMarketOrderSell());
+					fee = createMarketOrderSell();
+					ShortFees = ShortFees.add(fee);
+					mySql.LogTransaction(-1, runId, ind, transactionId, "SELL", fee.floatValue());
 					log.info("-- Short-SELL: " + ShortSell + ", Short-STOP: " + ShortStop);
 					log.info("-- LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: "
 							+ btcAsk.doubleValue() + ", Avg: " + Avg + ", AvgOld: " + AvgOld + ", Min: "
@@ -331,7 +346,9 @@ public class PriceTracker {
 					ShortTrades = ShortTrades + 1;
 					ShortBuy = btcAsk;
 					Short = Short.add(ShortSell.subtract(ShortBuy));
-					ShortFees = ShortFees.add(createMarketOrderBuy());
+					fee = createMarketOrderBuy();
+					ShortFees = ShortFees.add(fee);
+					mySql.LogTransaction(-1, runId, ind, transactionId, "BUY", fee.floatValue());
 					ShortStop = BigDecimal.valueOf(0);
 					log.info("## Short-BOUGHT: " + ShortBuy + ", RESULT = " + ShortSell.subtract(ShortBuy)
 							+ ", Short-SubTotal: " + Short + ", Short-Fees: " + ShortFees + ", Short-TOTAL: "
