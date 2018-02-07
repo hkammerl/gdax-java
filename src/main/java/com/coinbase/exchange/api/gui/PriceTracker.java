@@ -51,7 +51,7 @@ public class PriceTracker {
 	boolean trading;
 	int historyLength;
 	double factor;
-	double spread;
+	int spread;
 	boolean shortMarket;
 	boolean longMarket;
 
@@ -59,7 +59,7 @@ public class PriceTracker {
 	public PriceTracker(@Value("${trader.enabled}") boolean enabled, @Value("${trader.trading}") boolean trading,
 			@Value("${trader.shortMarket}") boolean shortMarket, @Value("${trader.longMarket}") boolean longMarket,
 			@Value("${trader.historyLength}") int historyLength, @Value("${trader.factor}") double factor,
-			@Value("${trader.spread}") double spread, MarketDataService marketDataService, OrderService orderService) {
+			@Value("${trader.spread}") int spread, MarketDataService marketDataService, OrderService orderService) {
 		log.info("Price Tracker Constructor ..." + enabled);
 		this.guiEnabled = enabled;
 		this.marketDataService = marketDataService;
@@ -198,6 +198,7 @@ public class PriceTracker {
 			String runId = UUID.randomUUID().toString();
 			MySql mySql = new MySql();
 			mySql.OpenDB();
+			mySql.InsertRunSet(runId, historyLength, spread);
 
 			String transactionId = "";
 
@@ -277,7 +278,7 @@ public class PriceTracker {
 					LongStop = Avg;
 					fee = createMarketOrderBuy();
 					LongFees = LongFees.add(fee);
-					mySql.LogTransaction(1, runId, ind, transactionId, "BUY", fee.floatValue());
+					mySql.TransactionLongBuy(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
 					log.info("++ Long-BUY: " + LongBuy + ", Long-STOP: " + LongStop);
 					log.info("++ LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: "
 							+ btcAsk.doubleValue() + ", Avg: " + Avg + ", AvgOld: " + AvgOld + ", Min: "
@@ -305,8 +306,7 @@ public class PriceTracker {
 					LongStop = BigDecimal.valueOf(0);
 					fee = createMarketOrderSell();
 					LongFees = LongFees.add(fee);
-					mySql.LogTransaction(1, runId, ind, transactionId, "SELL", fee.floatValue());
-					
+					mySql.TransactionLongSell(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
 					log.info("## Long-SOLD: " + LongSell + ", RESULT = " + LongSell.subtract(LongBuy)
 							+ ", Long-SubTotal: " + Long + ", Long-Fees: " + LongFees + ", Long-TOTAL: "
 							+ Long.subtract(LongFees));
@@ -335,7 +335,7 @@ public class PriceTracker {
 					ShortStop = Avg;
 					fee = createMarketOrderSell();
 					ShortFees = ShortFees.add(fee);
-					mySql.LogTransaction(-1, runId, ind, transactionId, "SELL", fee.floatValue());
+					mySql.TransactionShortSell(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
 					log.info("-- Short-SELL: " + ShortSell + ", Short-STOP: " + ShortStop);
 					log.info("-- LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: "
 							+ btcAsk.doubleValue() + ", Avg: " + Avg + ", AvgOld: " + AvgOld + ", Min: "
@@ -361,7 +361,7 @@ public class PriceTracker {
 					Short = Short.add(ShortSell.subtract(ShortBuy));
 					fee = createMarketOrderBuy();
 					ShortFees = ShortFees.add(fee);
-					mySql.LogTransaction(-1, runId, ind, transactionId, "BUY", fee.floatValue());
+					mySql.TransactionShortBuy(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
 					ShortStop = BigDecimal.valueOf(0);
 					log.info("## Short-BOUGHT: " + ShortBuy + ", RESULT = " + ShortSell.subtract(ShortBuy)
 							+ ", Short-SubTotal: " + Short + ", Short-Fees: " + ShortFees + ", Short-TOTAL: "

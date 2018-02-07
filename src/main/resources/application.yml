@@ -16,6 +16,6 @@ trader:
   trading: false
   historyLength: 100
   factor: 0.001
-  spread: 10
+  spread: 20
   shortMarket: true
   longMarket: true

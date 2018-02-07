@@ -25,7 +25,6 @@ CREATE TABLE `trading` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 */
 
-
 public class MySql {
 	static final Logger log = LoggerFactory.getLogger(PriceTracker.class);
 	String myDriver = "com.mysql.jdbc.Driver";
@@ -54,39 +53,97 @@ public class MySql {
 		}
 
 	}
+
+	void InsertRunSet(String runId, int history, int spread) {
+		try {
+			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+			Statement st = conn.createStatement();
+			String query = String.format(Locale.US, "insert into runset values (\"%s\", \"%s\", %d, %d)",
+					runId, timeStamp, history, spread);
+			st.executeUpdate(query);
+		} catch (Exception e) {
+			System.err.println("Got an exception! ");
+			System.err.println(e.getMessage());
+		}
+	}
+	
 	
 	void InsertPrice(String runId, int index, String currency, float price) {
 		try {
-			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());			
+			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 			Statement st = conn.createStatement();
-				String query = String.format(Locale.US,
-						"insert into trading values (\"%s\", %d, \"%s\", \"%s\", %f, null, null, null, null, null)",
-						runId, index, timeStamp, currency, price);
-				st.executeUpdate(query);
+			String query = String.format(Locale.US, "insert into history values (\"%s\", %d, \"%s\", \"%s\", %f)",
+					runId, index, timeStamp, currency, price);
+			st.executeUpdate(query);
 		} catch (Exception e) {
 			System.err.println("Got an exception! ");
 			System.err.println(e.getMessage());
 		}
 	}
 
-	void LogTransaction(int longShort, String runId, int index, String transactionId, String buySell, float fee) {
+	void TransactionLongBuy(String TransactionId, String runId, int indBuy, float priceBuy, float feeBuy) {
 		try {
-			String query = "";
+			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+
 			Statement st = conn.createStatement();
-			if (longShort == 1) {
-				query = String.format(Locale.US,
-						"update trading set long_transaction_id = \"%s\", long_buy_sell = \"%s\", fee = %f where run_id = \"%s\" and ind = %d ", transactionId, buySell, fee, runId, index);
-			}
-			else {
-				query = String.format(Locale.US,
-						"update trading set short_transaction_id = \"%s\", short_buy_sell = \"%s\", fee = %f where run_id = \"%s\" and ind = %d ", transactionId, buySell, fee, runId, index);
-			}
-				log.info(query);
-				st.executeUpdate(query);
+			String query = String.format(Locale.US,
+					"insert into transaction values (\"%s\", \"%s\", \"LONG\", \"%s\", %d, null, \"%s\", null, %f, null, %f, null)",
+					TransactionId, timeStamp, runId, indBuy, timeStamp, priceBuy, feeBuy);
+			log.info(query);
+			st.executeUpdate(query);
 		} catch (Exception e) {
 			System.err.println("Got an exception! ");
 			System.err.println(e.getMessage());
 		}
-		
 	}
+	
+	void TransactionLongSell(String TransactionId, String runId, int indSell, float priceSell, float feeSell) {
+		try {
+			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+
+			Statement st = conn.createStatement();
+			String query = String.format(Locale.US,
+					"update transaction set ind_sell = %d, timestamp_sell = \"%s\", price_sell = %f, fee_sell = %f where transaction_id = \"%s\"", 
+					indSell, timeStamp, priceSell, feeSell, TransactionId);
+			log.info(query);
+			st.executeUpdate(query);
+		} catch (Exception e) {
+			System.err.println("Got an exception! ");
+			System.err.println(e.getMessage());
+		}
+	}
+
+	void TransactionShortSell(String TransactionId, String runId, int indSell, float priceSell, float feeSell) {
+		try {
+			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+
+			Statement st = conn.createStatement();
+			String query = String.format(Locale.US,
+					"insert into transaction values (\"%s\", \"%s\", \"SHORT\", \"%s\", null, %d, null, \"%s\", null, %f, null, %f)",
+					TransactionId, timeStamp, runId, indSell, timeStamp, priceSell, feeSell);
+			log.info(query);
+			st.executeUpdate(query);
+		} catch (Exception e) {
+			System.err.println("Got an exception! ");
+			System.err.println(e.getMessage());
+		}
+
+	}
+	
+	void TransactionShortBuy(String TransactionId, String runId, int indBuy, float priceBuy, float feeBuy) {
+		try {
+			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+
+			Statement st = conn.createStatement();
+			String query = String.format(Locale.US,
+					"update transaction set ind_buy = %d, timestamp_buy = \"%s\", price_buy = %f, fee_buy = %f where transaction_id = \"%s\"", 
+					indBuy, timeStamp, priceBuy, feeBuy, TransactionId);
+			log.info(query);
+			st.executeUpdate(query);
+		} catch (Exception e) {
+			System.err.println("Got an exception! ");
+			System.err.println(e.getMessage());
+		}
+	}
+
 }
