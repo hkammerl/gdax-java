@@ -9,22 +9,6 @@ import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/* SQL Schema und Tabellen Generator
-CREATE DATABASE `gdax` !40100 DEFAULT CHARACTER SET utf8 ;
-CREATE TABLE `trading` (
-  `RUN_ID` varchar(200) DEFAULT NULL,
-  `IND` int(11) DEFAULT NULL,
-  `TIMESTAMP` timestamp(6) NULL DEFAULT NULL,
-  `CURRENCY` varchar(10) DEFAULT NULL,
-  `PRICE` float DEFAULT NULL,
-  `LONG_TRANSACTION_ID` varchar(200) DEFAULT NULL,
-  `LONG_BUY_SELL` varchar(5) DEFAULT NULL,
-  `SHORT_TRANSACTION_ID` varchar(200) DEFAULT NULL,
-  `SHORT_BUY_SELL` varchar(5) DEFAULT NULL,
-  `FEE` float DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-*/
-
 public class MySql {
 	static final Logger log = LoggerFactory.getLogger(PriceTracker.class);
 	String myDriver = "com.mysql.jdbc.Driver";
