@@ -262,9 +262,7 @@ public class PriceTracker {
 							+ down.doubleValue() + ", Max:  " + up.doubleValue() + ", Long-STOP: " + LongStop
 							+ ", Short-STOP: " + ShortStop + " - Iteration: " + ind);
 				}
-				if (LongStatus == 1 && LongShort == -1 && btcAsk.compareTo(LongStop) == -1) { // (LongStatus == 1 &&
-																			// btcAsk.compareTo(LongStop) == -1 &&
-																			// AskAvgSpread.longValue() < 0.0) {
+				if (LongStatus == 1 && LongShort == -1 && btcAsk.compareTo(LongStop) == -1) {
 					LongStatus = 0;
 					LongTrades = LongTrades + 1;
 					LongSell = btcAsk;
@@ -308,9 +306,7 @@ public class PriceTracker {
 							+ down.doubleValue() + ", Max:  " + up.doubleValue() + ", Long-STOP: " + LongStop
 							+ ", Short-STOP: " + ShortStop + " - Iteration: " + ind);
 				}
-				if (ShortStatus == 1 && LongShort == 1 && btcAsk.compareTo(ShortStop) == 1) {// (ShortStatus == 1 &&
-																			// btcAsk.compareTo(ShortStop) == 1 &&
-																			// AskAvgSpread.longValue() > 0.0) {
+				if (ShortStatus == 1 && LongShort == 1 && btcAsk.compareTo(ShortStop) == 1) {
 					ShortStatus = 0;
 					ShortTrades = ShortTrades + 1;
 					ShortBuy = btcAsk;
