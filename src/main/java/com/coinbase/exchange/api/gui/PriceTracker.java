@@ -246,7 +246,7 @@ public class PriceTracker {
 				}
 
 				// LONG - TRADES
-				if (longMarket && ind > historyLength && LongStatus == 0 && LongShort == 1
+				if (longMarket && ind > historyLength && LongStatus == 0 && ShortStatus == 0 && LongShort == 1
 						&& AskAvgSpread.longValue() > spread) {
 					transactionId = UUID.randomUUID().toString();					
 					LongStatus = 1;
@@ -292,7 +292,7 @@ public class PriceTracker {
 							+ ind);
 				}
 				// SHORT - TRADES
-				if (shortMarket && ind > historyLength && ShortStatus == 0 && LongShort == -1
+				if (shortMarket && ind > historyLength && ShortStatus == 0 && LongStatus == 0 && LongShort == -1
 						&& AskAvgSpread.longValue() < (-1.0) * spread) {
 					transactionId = UUID.randomUUID().toString();					
 					ShortStatus = 1;
