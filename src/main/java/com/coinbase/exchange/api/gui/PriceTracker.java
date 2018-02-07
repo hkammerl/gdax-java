@@ -59,7 +59,7 @@ public class PriceTracker {
 	@Autowired
 	public PriceTracker(@Value("${trader.enabled}") boolean enabled, @Value("${trader.trading}") boolean trading,
 			@Value("${trader.shortMarket}") boolean shortMarket, @Value("${trader.longMarket}") boolean longMarket,
-			@Value("${trader.historyLength}") int historyLength, @Value("${trader.historyPercentage}") int historyPercentage,@Value("${trader.factor}") double factor,
+			@Value("${trader.historyLength}") int historyLength, @Value("${trader.historyPercentage}") double historyPercentage, @Value("${trader.factor}") double factor,
 			@Value("${trader.spread}") int spread, MarketDataService marketDataService, OrderService orderService) {
 		log.info("Price Tracker Constructor ..." + enabled);
 		this.guiEnabled = enabled;
