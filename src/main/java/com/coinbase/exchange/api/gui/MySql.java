@@ -73,7 +73,6 @@ public class MySql {
 			String query = String.format(Locale.US,
 					"insert into transaction values (\"%s\", \"%s\", \"LONG\", \"%s\", %d, null, \"%s\", null, %f, null, %f, null)",
 					TransactionId, timeStamp, runId, indBuy, timeStamp, priceBuy, feeBuy);
-			log.info(query);
 			st.executeUpdate(query);
 		} catch (Exception e) {
 			System.err.println("Got an exception! ");
@@ -89,7 +88,6 @@ public class MySql {
 			String query = String.format(Locale.US,
 					"update transaction set ind_sell = %d, timestamp_sell = \"%s\", price_sell = %f, fee_sell = %f where transaction_id = \"%s\"", 
 					indSell, timeStamp, priceSell, feeSell, TransactionId);
-			log.info(query);
 			st.executeUpdate(query);
 		} catch (Exception e) {
 			System.err.println("Got an exception! ");
@@ -105,7 +103,6 @@ public class MySql {
 			String query = String.format(Locale.US,
 					"insert into transaction values (\"%s\", \"%s\", \"SHORT\", \"%s\", null, %d, null, \"%s\", null, %f, null, %f)",
 					TransactionId, timeStamp, runId, indSell, timeStamp, priceSell, feeSell);
-			log.info(query);
 			st.executeUpdate(query);
 		} catch (Exception e) {
 			System.err.println("Got an exception! ");
@@ -122,7 +119,6 @@ public class MySql {
 			String query = String.format(Locale.US,
 					"update transaction set ind_buy = %d, timestamp_buy = \"%s\", price_buy = %f, fee_buy = %f where transaction_id = \"%s\"", 
 					indBuy, timeStamp, priceBuy, feeBuy, TransactionId);
-			log.info(query);
 			st.executeUpdate(query);
 		} catch (Exception e) {
 			System.err.println("Got an exception! ");
