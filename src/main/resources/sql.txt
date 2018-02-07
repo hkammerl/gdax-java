@@ -1,0 +1,38 @@
+select * from runset
+order by timestamp desc;
+
+select * from history
+order by timestamp desc;
+
+
+
+create or replace view TRADING as
+select r.TIMESTAMP start_time, h.*, 
+(select min(price_buy) from transaction t1 where t1.RUN_ID=h.RUN_ID and t1.IND_BUY = h.IND) price_buy,
+(select min(price_sell) from transaction t2 where t2.RUN_ID=h.RUN_ID and t2.IND_sell = h.IND) price_sell
+from runset r, history h
+where r.RUN_ID = h.RUN_ID
+order by r.timestamp desc, h.TIMESTAMP desc;
+
+select * from transaction order by timestamp;
+
+
+select (price_sell-PRICE_BUY) win, (fee_buy+fee_sell) fee, t.*
+from transaction t
+where run_id = "488ede57-ab05-44cd-ae09-879509c9749e"
+order by timestamp desc;
+
+select run_id, long_short, sum(price_sell-price_buy) win, sum(FEE_BUY + fee_sell) fee, sum((price_sell-price_buy) - (fee_buy+fee_sell)) total, count(*)
+from transaction
+group by run_id, long_short
+order by timestamp desc;
+
+select min (price_buy) from transaction;
+
+delete from transaction where run_id <> "488ede57-ab05-44cd-ae09-879509c9749e";
+
+delete from history where run_id <> "488ede57-ab05-44cd-ae09-879509c9749e";
+
+delete from runset where run_id <> "488ede57-ab05-44cd-ae09-879509c9749e";
+
+commit;
