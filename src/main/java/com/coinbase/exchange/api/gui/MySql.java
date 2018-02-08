@@ -23,6 +23,7 @@ public class MySql {
 		} catch (Exception e) {
 			System.err.println("Open DB: Got an exception! ");
 			System.err.println(e.getMessage());
+			e.printStackTrace();
 		}
 
 	}
