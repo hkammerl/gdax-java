@@ -18,10 +18,10 @@ public class MySql {
 	void OpenDB() {
 		try {
 			Class.forName(myDriver);
-			conn = DriverManager.getConnection(myUrl, "root", "dorabald");
+			conn = DriverManager.getConnection(myUrl, "kam", "dorabald");
 
 		} catch (Exception e) {
-			System.err.println("Got an exception! ");
+			System.err.println("Open DB: Got an exception! ");
 			System.err.println(e.getMessage());
 		}
 
@@ -46,7 +46,7 @@ public class MySql {
 					runId, timeStamp, history, spread);
 			st.executeUpdate(query);
 		} catch (Exception e) {
-			System.err.println("Got an exception! ");
+			System.err.println("Insert RunSet: Got an exception! ");
 			System.err.println(e.getMessage());
 		}
 	}
