@@ -14,7 +14,8 @@ buildscript {
 
     }
     dependencies {
-        classpath "org.springframework.boot:spring-boot-gradle-plugin:1.5.4.RELEASE"
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:1.5.10.RELEASE"
+        
     }
 }
 
@@ -41,6 +42,20 @@ dependencies {
 
     testCompile 'org.springframework:spring-test:4.3.5.RELEASE'
     testCompile 'org.springframework.boot:spring-boot-test:1.5.4.RELEASE'
+    
+    
+    
+    compile("org.springframework.boot:spring-boot-starter-web")
+
+    // JPA Data (We are going to use Repositories, Entities, Hibernate, etc...)
+    compile 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // Use MySQL Connector-J
+    compile 'mysql:mysql-connector-java'
+
+    testCompile('org.springframework.boot:spring-boot-starter-test')
+    
+  
 }
 
 tasks.withType(Jar) {

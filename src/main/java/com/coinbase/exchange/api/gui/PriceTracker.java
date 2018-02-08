@@ -6,6 +6,8 @@ import com.coinbase.exchange.api.entity.NewLimitOrderSingle;
 import com.coinbase.exchange.api.entity.NewMarketOrderSingle;
 import com.coinbase.exchange.api.marketdata.MarketData;
 import com.coinbase.exchange.api.marketdata.MarketDataService;
+import com.coinbase.exchange.api.mysql.Marketprice;
+import com.coinbase.exchange.api.mysql.MarketpriceRepository;
 import com.coinbase.exchange.api.orders.Order;
 import com.coinbase.exchange.api.orders.OrderService;
 
@@ -45,6 +47,8 @@ public class PriceTracker {
 	OrderService orderService;
 
 	MarketDataService marketDataService;
+	
+	MarketpriceRepository marketpriceRepository;
 
 	JLabel prices;
 
@@ -60,11 +64,12 @@ public class PriceTracker {
 	public PriceTracker(@Value("${trader.enabled}") boolean enabled, @Value("${trader.trading}") boolean trading,
 			@Value("${trader.shortMarket}") boolean shortMarket, @Value("${trader.longMarket}") boolean longMarket,
 			@Value("${trader.historyLength}") int historyLength, @Value("${trader.historyPercentage}") double historyPercentage, @Value("${trader.factor}") double factor,
-			@Value("${trader.spread}") int spread, MarketDataService marketDataService, OrderService orderService) {
+			@Value("${trader.spread}") int spread, MarketDataService marketDataService, OrderService orderService, MarketpriceRepository marketpriceRepository) {
 		log.info("Price Tracker Constructor ..." + enabled);
 		this.guiEnabled = enabled;
 		this.marketDataService = marketDataService;
 		this.orderService = orderService;
+		this.marketpriceRepository = marketpriceRepository;
 		this.trading = trading;
 		this.historyLength = historyLength;
 		this.historyPercentage = historyPercentage;
@@ -203,6 +208,8 @@ public class PriceTracker {
 				btcAsk = this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0)
 						.getPrice();
 				mySql.InsertPrice(runId, ind, "BTC", btcAsk.floatValue());
+				Marketprice mp = new Marketprice(runId, ind, "BTC", btcAsk.floatValue());
+				marketpriceRepository.save(mp);
 				}
 				catch (Exception e) {
 					e.printStackTrace();
