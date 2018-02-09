@@ -196,9 +196,6 @@ public class PriceTracker {
 			Instant stop;
 			long gap;
 			String runId = UUID.randomUUID().toString();
-			MySql mySql = new MySql();
-			mySql.OpenDB();
-			mySql.InsertRunSet(runId, historyLength, spread);
 			Runconfiguration runconfiguration = new Runconfiguration(runId, historyLength, historyPercentage, spread);
 			runconfigurationRepository.save(runconfiguration);
 
@@ -215,7 +212,6 @@ public class PriceTracker {
 				try {
 				btcAsk = this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0)
 						.getPrice();
-				mySql.InsertPrice(runId, ind, "BTC", btcAsk.floatValue());
 				Marketprice mp = new Marketprice(runId, ind, "BTC", btcAsk.floatValue());
 				marketpriceRepository.save(mp);
 				}
@@ -272,7 +268,6 @@ public class PriceTracker {
 					LongStop = Avg;
 					fee = createMarketOrderBuy();
 					LongFees = LongFees.add(fee);
-					mySql.TransactionLongBuy(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
 					transaction = new Trade(transactionId, runId, "LONG", "BTC");
 					transaction.setIndBuy(ind);
 					transaction.setPriceBuy(btcAsk.floatValue());
@@ -291,7 +286,6 @@ public class PriceTracker {
 					LongStop = BigDecimal.valueOf(0);
 					fee = createMarketOrderSell();
 					LongFees = LongFees.add(fee);
-					mySql.TransactionLongSell(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
 					transaction.setIndSell(ind);
 					transaction.setPriceSell(btcAsk.floatValue());
 					transaction.setFeeSell(ind);
@@ -324,7 +318,6 @@ public class PriceTracker {
 					ShortStop = Avg;
 					fee = createMarketOrderSell();
 					ShortFees = ShortFees.add(fee);
-					mySql.TransactionShortSell(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
 					transaction = new Trade(transactionId, runId, "SHORT", "BTC");
 					transaction.setIndSell(ind);
 					transaction.setPriceSell(btcAsk.floatValue());
@@ -342,7 +335,6 @@ public class PriceTracker {
 					Short = Short.add(ShortSell.subtract(ShortBuy));
 					fee = createMarketOrderBuy();
 					ShortFees = ShortFees.add(fee);
-					mySql.TransactionShortBuy(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
 					transaction.setIndBuy(ind);
 					transaction.setPriceBuy(btcAsk.floatValue());
 					transaction.setFeeBuy(ind);
