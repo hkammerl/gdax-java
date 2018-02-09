@@ -22,6 +22,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.swing.*;
 import java.awt.*;
@@ -41,6 +44,7 @@ import static org.junit.Assert.assertTrue;
  * Created by robevans.uk on 01/09/2017.
  */
 @Component
+@RequestMapping(path="/tracker") 
 public class PriceTracker {
 
 	static final Logger log = LoggerFactory.getLogger(PriceTracker.class);
@@ -125,9 +129,6 @@ public class PriceTracker {
 
 		log.info("Trading: " + this.trading + ", HistoryLength: " + this.historyLength + ", HistoryPercentage: "
 				+ this.historyPercentage + ", Factor: " + this.factor + ", Spread: " + this.spread);
-		// if (enabled) {
-		// Run();
-		// }
 	}
 
 	private NewLimitOrderSingle getNewLimitOrderSingle(String BuyOrSell, String productId, BigDecimal price,
@@ -203,10 +204,36 @@ public class PriceTracker {
 					.multiply(BigDecimal.valueOf(0.0025));
 		}
 	}
-	@Scheduled(fixedRate = 5000)
+	
+	
+	@GetMapping(path="/summary")
+	public @ResponseBody String PrintTradeSummary() {
+		// This returns a JSON or XML with the users
+		log.info("LONG  TRADES - Status: " + LongStatus + ", Trades: " + LongTrades + ", book: "
+				+ btcAsk.subtract(LongBuy) + ", Fix: " + LongStop.subtract(LongBuy) + ", Win: " + Long + ", Fees: "
+				+ LongFees + ", Total: " + Long.subtract(LongFees) + ", Market: " + btcAsk.subtract(TradeStart)
+				+ ", Value: " + LongBuy + ", Stop: " + LongStop + " -- " + ind);
+		log.info("SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", book: "
+				+ ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop) + ", Win: " + Short
+				+ ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees) + ", Market: "
+				+ TradeStart.subtract(btcAsk) + ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- " + ind);
+		
+		return "SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", book: "
+		+ ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop) + ", Win: " + Short
+		+ ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees) + ", Market: "
+		+ TradeStart.subtract(btcAsk) + ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- " + ind+ System.lineSeparator() +
+		"SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", book: "
+		+ ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop) + ", Win: " + Short
+		+ ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees) + ", Market: "
+		+ TradeStart.subtract(btcAsk) + ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- " + ind;		
+	}
+	
+	
+	
+	@Scheduled(fixedRate = 1000)
 	public void Run() {
 		ind = ind + 1;
-		log.info("PriceTracker - RUN: " + runId, ", Ind: " + ind);
+		log.info("PriceTracker - RUN: " + runId + ", Ind: " + ind);
 
 		try {
 			btcAsk = this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0).getPrice();
@@ -350,6 +377,8 @@ public class PriceTracker {
 		}
 	}
 
+	
+	
 	public void startGui() {
 		log.info("Start-GUI - PriceTracker");
 		if (guiEnabled) {
