@@ -14,9 +14,9 @@ gui:
 trader:
   enabled: true
   trading: false
-  historyLength: 1800
-  historyPercentage: 0.05
+  historyLength: 30
+  historyPercentage: 0.1
   factor: 0.001
-  spread: 20
+  spread: 10
   shortMarket: true
   longMarket: true

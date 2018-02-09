@@ -36,7 +36,7 @@ import javax.persistence.Entity;
 			this.id = id;
 		}
 
-		public String getrunId() {
+		public String getRunId() {
 			return runId;
 		}
 

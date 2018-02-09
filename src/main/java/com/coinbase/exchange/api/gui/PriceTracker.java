@@ -8,6 +8,10 @@ import com.coinbase.exchange.api.marketdata.MarketData;
 import com.coinbase.exchange.api.marketdata.MarketDataService;
 import com.coinbase.exchange.api.mysql.Marketprice;
 import com.coinbase.exchange.api.mysql.MarketpriceRepository;
+import com.coinbase.exchange.api.mysql.Runconfiguration;
+import com.coinbase.exchange.api.mysql.RunconfigurationRepository;
+import com.coinbase.exchange.api.mysql.Trade;
+import com.coinbase.exchange.api.mysql.TradeRepository;
 import com.coinbase.exchange.api.orders.Order;
 import com.coinbase.exchange.api.orders.OrderService;
 
@@ -43,13 +47,11 @@ public class PriceTracker {
 	Boolean guiEnabled;
 
 	JFrame frame;
-
 	OrderService orderService;
-
 	MarketDataService marketDataService;
-	
 	MarketpriceRepository marketpriceRepository;
-
+	TradeRepository tradeRepository;
+	RunconfigurationRepository runconfigurationRepository;
 	JLabel prices;
 
 	boolean trading;
@@ -64,12 +66,15 @@ public class PriceTracker {
 	public PriceTracker(@Value("${trader.enabled}") boolean enabled, @Value("${trader.trading}") boolean trading,
 			@Value("${trader.shortMarket}") boolean shortMarket, @Value("${trader.longMarket}") boolean longMarket,
 			@Value("${trader.historyLength}") int historyLength, @Value("${trader.historyPercentage}") double historyPercentage, @Value("${trader.factor}") double factor,
-			@Value("${trader.spread}") int spread, MarketDataService marketDataService, OrderService orderService, MarketpriceRepository marketpriceRepository) {
+			@Value("${trader.spread}") int spread, MarketDataService marketDataService, OrderService orderService, MarketpriceRepository marketpriceRepository, TradeRepository tradeRepository, RunconfigurationRepository runconfigurationRepository) {
 		log.info("Price Tracker Constructor ..." + enabled);
 		this.guiEnabled = enabled;
 		this.marketDataService = marketDataService;
 		this.orderService = orderService;
 		this.marketpriceRepository = marketpriceRepository;
+		this.tradeRepository = tradeRepository;
+		this.runconfigurationRepository = runconfigurationRepository;
+		
 		this.trading = trading;
 		this.historyLength = historyLength;
 		this.historyPercentage = historyPercentage;
@@ -194,7 +199,10 @@ public class PriceTracker {
 			MySql mySql = new MySql();
 			mySql.OpenDB();
 			mySql.InsertRunSet(runId, historyLength, spread);
+			Runconfiguration runconfiguration = new Runconfiguration(runId, historyLength, historyPercentage, spread);
+			runconfigurationRepository.save(runconfiguration);
 
+			Trade transaction = null;
 			String transactionId = "";
 
 			log.info("PriceTracker - RUN: " + runId);
@@ -265,6 +273,10 @@ public class PriceTracker {
 					fee = createMarketOrderBuy();
 					LongFees = LongFees.add(fee);
 					mySql.TransactionLongBuy(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
+					transaction = new Trade(transactionId, runId, "LONG", "BTC");
+					transaction.setIndBuy(ind);
+					transaction.setPriceBuy(btcAsk.floatValue());
+					transaction.setFeeBuy(fee.floatValue());
 					log.info("++ Long-BUY: " + LongBuy + ", Long-STOP: " + LongStop);
 					log.info("++ LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: "
 							+ btcAsk.doubleValue() + ", Avg: " + Avg + ", AvgOld: " + AvgOld + ", Min: "
@@ -280,6 +292,10 @@ public class PriceTracker {
 					fee = createMarketOrderSell();
 					LongFees = LongFees.add(fee);
 					mySql.TransactionLongSell(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
+					transaction.setIndSell(ind);
+					transaction.setPriceSell(btcAsk.floatValue());
+					transaction.setFeeSell(ind);
+					tradeRepository.save(transaction);
 					log.info("++ Long-SOLD: " + LongSell + ", RESULT = " + LongSell.subtract(LongBuy)
 							+ ", Long-SubTotal: " + Long + ", Long-Fees: " + LongFees + ", Long-TOTAL: "
 							+ Long.subtract(LongFees));
@@ -309,6 +325,10 @@ public class PriceTracker {
 					fee = createMarketOrderSell();
 					ShortFees = ShortFees.add(fee);
 					mySql.TransactionShortSell(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
+					transaction = new Trade(transactionId, runId, "SHORT", "BTC");
+					transaction.setIndSell(ind);
+					transaction.setPriceSell(btcAsk.floatValue());
+					transaction.setFeeSell(fee.floatValue());
 					log.info("-- Short-SELL: " + ShortSell + ", Short-STOP: " + ShortStop);
 					log.info("-- LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: "
 							+ btcAsk.doubleValue() + ", Avg: " + Avg + ", AvgOld: " + AvgOld + ", Min: "
@@ -323,6 +343,11 @@ public class PriceTracker {
 					fee = createMarketOrderBuy();
 					ShortFees = ShortFees.add(fee);
 					mySql.TransactionShortBuy(transactionId, runId, ind, btcAsk.floatValue(), fee.floatValue());
+					transaction.setIndBuy(ind);
+					transaction.setPriceBuy(btcAsk.floatValue());
+					transaction.setFeeBuy(ind);
+					tradeRepository.save(transaction);
+					
 					ShortStop = BigDecimal.valueOf(0);
 					log.info("-- Short-BOUGHT: " + ShortBuy + ", RESULT = " + ShortSell.subtract(ShortBuy)
 							+ ", Short-SubTotal: " + Short + ", Short-Fees: " + ShortFees + ", Short-TOTAL: "
