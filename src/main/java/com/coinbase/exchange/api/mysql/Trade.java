@@ -24,6 +24,8 @@ import javax.persistence.Entity;
 	    private float feeSell;
 	    private String currency;
 	    private String timeStamp;
+	    private int idBuy;
+	    private int idSell;
 
 	    public Trade (String transactionId, String runId, String transactionType, String currency) {
 			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
@@ -131,4 +133,20 @@ import javax.persistence.Entity;
 			this.feeSell = fee;
 		}
 		
-}
+		public int getIdBuy() {
+			return idBuy;
+		}
+
+		public void setIdBuy(int id) {
+			this.idBuy = id;
+		}
+		public int getIdSell() {
+			return idSell;
+		}
+
+		public void setIdSell(int id) {
+			this.indSell = id;
+		}
+
+	
+	}
