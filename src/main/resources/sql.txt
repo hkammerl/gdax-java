@@ -1,38 +1,25 @@
-select * from runset
-order by timestamp desc;
+SELECT * FROM gdax.runconfiguration order by id desc;
 
-select * from history
-order by timestamp desc;
+select *  from marketprice order by id desc;
 
+select * from trade order by id desc;
 
-
-create or replace view TRADING as
-select r.TIMESTAMP start_time, h.*, 
-(select min(price_buy) from transaction t1 where t1.RUN_ID=h.RUN_ID and t1.IND_BUY = h.IND) price_buy,
-(select min(price_sell) from transaction t2 where t2.RUN_ID=h.RUN_ID and t2.IND_sell = h.IND) price_sell
-from runset r, history h
-where r.RUN_ID = h.RUN_ID
-order by r.timestamp desc, h.TIMESTAMP desc;
-
-select * from transaction order by timestamp;
+select * from TRADEHISTORY
+where transaction_id is not null;
 
 
-select (price_sell-PRICE_BUY) win, (fee_buy+fee_sell) fee, t.*
-from transaction t
-where run_id = "488ede57-ab05-44cd-ae09-879509c9749e"
-order by timestamp desc;
+create or replace view TRADEHISTORY as
+select r.time_stamp start_time, m.*,
+(select min(price_buy) from trade t1 where t1.id_buy=m.id) price_buy,
+(select min(price_sell) from trade t2 where t2.id_sell=m.id) price_sell,
+(select min(t3.transaction_id) from trade t3 where t3.id_sell=m.id) transaction_id,
+(select min(t4.transaction_type) from trade t4 where t4.id_sell=m.id) transaction_type
+from runconfiguration r, marketprice m
+where r.RUN_ID = m.RUN_ID
+order by r.time_stamp desc , m.time_stamp desc;
 
-select run_id, long_short, sum(price_sell-price_buy) win, sum(FEE_BUY + fee_sell) fee, sum((price_sell-price_buy) - (fee_buy+fee_sell)) total, count(*)
-from transaction
-group by run_id, long_short
-order by timestamp desc;
 
-select min (price_buy) from transaction;
 
-delete from transaction where run_id <> "488ede57-ab05-44cd-ae09-879509c9749e";
-
-delete from history where run_id <> "488ede57-ab05-44cd-ae09-879509c9749e";
-
-delete from runset where run_id <> "488ede57-ab05-44cd-ae09-879509c9749e";
-
-commit;
+delete from runconfiguration;
+delete from marketprice;
+delete from trade;
