@@ -31,6 +31,7 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -44,7 +45,7 @@ import static org.junit.Assert.assertTrue;
  * Created by robevans.uk on 01/09/2017.
  */
 @Component
-@RequestMapping(path="/tracker") 
+@RequestMapping(path = "/tracker")
 public class PriceTracker {
 
 	static final Logger log = LoggerFactory.getLogger(PriceTracker.class);
@@ -66,6 +67,8 @@ public class PriceTracker {
 	BigDecimal AvgPercentage = BigDecimal.valueOf(0.0);
 	BigDecimal AvgOld = BigDecimal.valueOf(0.0);
 	BigDecimal TradeStart = BigDecimal.valueOf(0.0);
+	BigDecimal down;
+	BigDecimal up;
 	int LongShort = 0;
 	BigDecimal AskAvgSpread = BigDecimal.valueOf(0.0);
 	BigDecimal fee = BigDecimal.valueOf(0.0);
@@ -204,9 +207,8 @@ public class PriceTracker {
 					.multiply(BigDecimal.valueOf(0.0025));
 		}
 	}
-	
-	
-	@GetMapping(path="/summary")
+
+	@GetMapping(path = "/summary")
 	public @ResponseBody String PrintTradeSummary() {
 		// This returns a JSON or XML with the users
 		log.info("LONG  TRADES - Status: " + LongStatus + ", Trades: " + LongTrades + ", book: "
@@ -217,24 +219,30 @@ public class PriceTracker {
 				+ ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop) + ", Win: " + Short
 				+ ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees) + ", Market: "
 				+ TradeStart.subtract(btcAsk) + ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- " + ind);
-		
-		return "SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", book: "
-		+ ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop) + ", Win: " + Short
-		+ ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees) + ", Market: "
-		+ TradeStart.subtract(btcAsk) + ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- " + ind+ System.lineSeparator() +
-		"SHORT TRADES - Status: " + ShortStatus + ", Trades: " + ShortTrades + ", book: "
-		+ ShortSell.subtract(btcAsk) + ", Fix: " + ShortSell.subtract(ShortStop) + ", Win: " + Short
-		+ ", Fees: " + ShortFees + ", Total: " + Short.subtract(ShortFees) + ", Market: "
-		+ TradeStart.subtract(btcAsk) + ", Value: " + ShortSell + ", Stop: " + ShortStop + " -- " + ind;		
+
+		return "LONG  TRADES - Status: " + LongStatus + ", Trades: " + LongTrades + ", book: "
+				+ btcAsk.subtract(LongBuy) + ", Fix: " + LongStop.subtract(LongBuy) + ", Win: " + Long + ", Fees: "
+				+ LongFees + ", Total: " + Long.subtract(LongFees) + ", Market: " + btcAsk.subtract(TradeStart)
+				+ ", Value: " + LongBuy + ", Stop: " + LongStop + " -- " + ind + "SHORT TRADES - Status: " + ShortStatus
+				+ ", Trades: " + ShortTrades + ", book: " + ShortSell.subtract(btcAsk) + ", Fix: "
+				+ ShortSell.subtract(ShortStop) + ", Win: " + Short + ", Fees: " + ShortFees + ", Total: "
+				+ Short.subtract(ShortFees) + ", Market: " + TradeStart.subtract(btcAsk) + ", Value: " + ShortSell
+				+ ", Stop: " + ShortStop + " -- " + ind;
 	}
-	
-	
-	
+
+	@GetMapping(path = "/log")
+	public @ResponseBody String PrintTradeLog() {
+		// This returns a JSON or XML with the users
+		return "LONG-SHORT: " + LongShort + ", Spread: " + AskAvgSpread + ", btcAsk: " + btcAsk.doubleValue()
+				+ ", AvgP: " + AvgPercentage + ", Avg: " + Avg + ", AvgOld: " + AvgOld + ", Min: " + down.doubleValue()
+				+ ", Max:  " + up.doubleValue() + ", Long-STOP: " + LongStop + ", Short-STOP: " + ShortStop
+				+ " - Iteration: " + ind;
+
+	}
+
 	@Scheduled(fixedRate = 1000)
 	public void Run() {
 		ind = ind + 1;
-		log.info("PriceTracker - RUN: " + runId + ", Ind: " + ind);
-
 		try {
 			btcAsk = this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0).getPrice();
 			Marketprice mp = new Marketprice(runId, ind, "BTC", btcAsk.floatValue());
@@ -244,8 +252,8 @@ public class PriceTracker {
 
 		}
 		history.Add(btcAsk);
-		BigDecimal down = btcAsk.subtract(history.MinElement());
-		BigDecimal up = history.MaxElement().subtract(btcAsk);
+		down = btcAsk.subtract(history.MinElement());
+		up = history.MaxElement().subtract(btcAsk);
 		AvgOld = Avg;
 		Avg = history.Avg();
 		AvgPercentage = history.AvgLastPercentage(0.1);
@@ -290,6 +298,7 @@ public class PriceTracker {
 			fee = createMarketOrderBuy();
 			LongFees = LongFees.add(fee);
 			transaction = new Trade(transactionId, runId, "LONG", "BTC");
+			transaction.setIdBuy(marketpriceRepository.findByRunIdAndInd(runId, ind).get(0).getId());
 			transaction.setIndBuy(ind);
 			transaction.setPriceBuy(btcAsk.floatValue());
 			transaction.setFeeBuy(fee.floatValue());
@@ -307,9 +316,10 @@ public class PriceTracker {
 			LongStop = BigDecimal.valueOf(0);
 			fee = createMarketOrderSell();
 			LongFees = LongFees.add(fee);
+			transaction.setIdSell(marketpriceRepository.findByRunIdAndInd(runId, ind).get(0).getId());
 			transaction.setIndSell(ind);
 			transaction.setPriceSell(btcAsk.floatValue());
-			transaction.setFeeSell(ind);
+			transaction.setFeeSell(fee.floatValue());
 			tradeRepository.save(transaction);
 			log.info("++ Long-SOLD: " + LongSell + ", RESULT = " + LongSell.subtract(LongBuy) + ", Long-SubTotal: "
 					+ Long + ", Long-Fees: " + LongFees + ", Long-TOTAL: " + Long.subtract(LongFees));
@@ -337,6 +347,7 @@ public class PriceTracker {
 			fee = createMarketOrderSell();
 			ShortFees = ShortFees.add(fee);
 			transaction = new Trade(transactionId, runId, "SHORT", "BTC");
+			transaction.setIdSell(marketpriceRepository.findByRunIdAndInd(runId, ind).get(0).getId());
 			transaction.setIndSell(ind);
 			transaction.setPriceSell(btcAsk.floatValue());
 			transaction.setFeeSell(fee.floatValue());
@@ -353,9 +364,10 @@ public class PriceTracker {
 			Short = Short.add(ShortSell.subtract(ShortBuy));
 			fee = createMarketOrderBuy();
 			ShortFees = ShortFees.add(fee);
+			transaction.setIdBuy(marketpriceRepository.findByRunIdAndInd(runId, ind).get(0).getId());
 			transaction.setIndBuy(ind);
 			transaction.setPriceBuy(btcAsk.floatValue());
-			transaction.setFeeBuy(ind);
+			transaction.setFeeBuy(fee.floatValue());
 			tradeRepository.save(transaction);
 
 			ShortStop = BigDecimal.valueOf(0);
@@ -377,8 +389,6 @@ public class PriceTracker {
 		}
 	}
 
-	
-	
 	public void startGui() {
 		log.info("Start-GUI - PriceTracker");
 		if (guiEnabled) {

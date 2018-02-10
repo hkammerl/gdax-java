@@ -19,6 +19,10 @@ import javax.persistence.Entity;
 	    private String currency;
 	    private float price;
 
+	    public Marketprice() {
+	    	System.out.println("Marketprice - Konstruktor");
+	    	
+	    }
 	    public Marketprice (String runId, int ind, String currency, float price) {
 			String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
 	    	setRunId(runId);

@@ -145,7 +145,7 @@ import javax.persistence.Entity;
 		}
 
 		public void setIdSell(int id) {
-			this.indSell = id;
+			this.idSell = id;
 		}
 
 	
