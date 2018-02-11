@@ -5,15 +5,16 @@ select *  from marketprice order by id desc;
 select * from trade order by id desc;
 
 select * from TRADEHISTORY
-where transaction_id is not null;
+where (price_sell is not null or price_buy is not null)
+order by time_stamp desc;
 
+select * from marketprice where id = 14906;
 
 create or replace view TRADEHISTORY as
 select r.time_stamp start_time, m.*,
 (select min(price_buy) from trade t1 where t1.id_buy=m.id) price_buy,
 (select min(price_sell) from trade t2 where t2.id_sell=m.id) price_sell,
-(select min(t3.transaction_id) from trade t3 where t3.id_sell=m.id) transaction_id,
-(select min(t4.transaction_type) from trade t4 where t4.id_sell=m.id) transaction_type
+(select min(id) from trade t3 where (t3.id_buy = m.id or t3.id_sell = m.id)) transaction_id
 from runconfiguration r, marketprice m
 where r.RUN_ID = m.RUN_ID
 order by r.time_stamp desc , m.time_stamp desc;

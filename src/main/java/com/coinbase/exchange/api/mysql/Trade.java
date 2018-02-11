@@ -57,8 +57,8 @@ import javax.persistence.Entity;
 			return transactionId;
 		}
 
-		public void setTransactionId(String runId) {
-			this.runId = runId;
+		public void setTransactionId(String transactionId) {
+			this.transactionId = transactionId;
 		}
 		
 		public String getTransactionType() {
