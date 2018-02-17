@@ -1,8 +1,10 @@
 package com.coinbase.exchange.api.gui;
 
 import com.coinbase.exchange.api.GdaxApiApplication;
+import com.coinbase.exchange.api.accounts.Account;
 import com.coinbase.exchange.api.entity.NewLimitOrderSingle;
 import com.coinbase.exchange.api.entity.NewMarketOrderSingle;
+import com.coinbase.exchange.api.marketdata.MarketData;
 import com.coinbase.exchange.api.marketdata.MarketDataService;
 import com.coinbase.exchange.api.mysql.Marketprice;
 import com.coinbase.exchange.api.mysql.MarketpriceRepository;
@@ -27,9 +29,16 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.swing.*;
 import java.awt.*;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.coinbase.exchange.api.GdaxApiApplication.SYSTEM_PROPERTY_JAVA_AWT_HEADLESS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**

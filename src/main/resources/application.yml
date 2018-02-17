@@ -20,4 +20,4 @@ trader:
   spread: 10
   shortMarket: true
   longMarket: true
-  currency: "LTC"
+  currency: "ETH"
