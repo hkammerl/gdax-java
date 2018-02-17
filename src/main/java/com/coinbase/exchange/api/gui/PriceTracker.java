@@ -95,6 +95,7 @@ public class PriceTracker {
 	double historyPercentage;
 	double factor;
 	int spread;
+	String currency;
 	boolean shortMarket;
 	boolean longMarket;
 
@@ -103,7 +104,7 @@ public class PriceTracker {
 			@Value("${trader.shortMarket}") boolean shortMarket, @Value("${trader.longMarket}") boolean longMarket,
 			@Value("${trader.historyLength}") int historyLength,
 			@Value("${trader.historyPercentage}") double historyPercentage, @Value("${trader.factor}") double factor,
-			@Value("${trader.spread}") int spread, MarketDataService marketDataService, OrderService orderService,
+			@Value("${trader.spread}") int spread, @Value("${trader.currency}") String currency, MarketDataService marketDataService, OrderService orderService,
 			MarketpriceRepository marketpriceRepository, TradeRepository tradeRepository,
 			RunconfigurationRepository runconfigurationRepository) {
 		log.info("Price Tracker Constructor ..." + enabled);
@@ -119,19 +120,20 @@ public class PriceTracker {
 		this.historyPercentage = historyPercentage;
 		this.factor = factor;
 		this.spread = spread;
+		this.currency = currency;
 		this.shortMarket = shortMarket;
 		this.longMarket = longMarket;
 
 		history = new History(historyLength);
 
-		TradeStart = this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0).getPrice();
+		TradeStart = this.marketDataService.getMarketDataOrderBook(currency+"-EUR", "1").getAsks().get(0).getPrice();
 		runId = UUID.randomUUID().toString();
 
-		Runconfiguration runconfiguration = new Runconfiguration(runId, historyLength, historyPercentage, spread);
+		Runconfiguration runconfiguration = new Runconfiguration(runId, historyLength, historyPercentage, spread, currency);
 		runconfigurationRepository.save(runconfiguration);
 
 		log.info("Trading: " + this.trading + ", HistoryLength: " + this.historyLength + ", HistoryPercentage: "
-				+ this.historyPercentage + ", Factor: " + this.factor + ", Spread: " + this.spread);
+				+ this.historyPercentage + ", Factor: " + this.factor + ", Spread: " + this.spread + ", Currency: " + this.currency);
 	}
 
 	private NewLimitOrderSingle getNewLimitOrderSingle(String BuyOrSell, String productId, BigDecimal price,
@@ -148,7 +150,7 @@ public class PriceTracker {
 
 	public Order CreateLimitOrder(String BuyOrSell, BigDecimal price, BigDecimal size) {
 		if (trading) {
-			NewLimitOrderSingle limitOrder = getNewLimitOrderSingle(BuyOrSell, "BTC-EUR", price, size);
+			NewLimitOrderSingle limitOrder = getNewLimitOrderSingle(BuyOrSell, currency+"-EUR", price, size);
 			Order order = orderService.createOrder(limitOrder);
 			log.info("Limit Order :" + order.toString() + " - " + order.getFilled_size() + " - " + order.getStatus()
 					+ "-" + order.getPrice() + " - " + order.getSettled());
@@ -167,7 +169,7 @@ public class PriceTracker {
 
 	public BigDecimal createMarketOrderBuy() {
 		if (trading) {
-			NewMarketOrderSingle marketOrder = createNewMarketOrder("BTC-EUR", "buy", new BigDecimal(0.001));
+			NewMarketOrderSingle marketOrder = createNewMarketOrder(currency + "-EUR", "buy", new BigDecimal(0.001));
 			Order order = orderService.createOrder(marketOrder);
 
 			assertTrue(order != null); // make sure we created an order
@@ -182,14 +184,14 @@ public class PriceTracker {
 					.divide(BigDecimal.valueOf(factor));
 		} else {
 			// return BigDecimal.valueOf(0.02).divide(BigDecimal.valueOf(factor));
-			return this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0).getPrice()
+			return this.marketDataService.getMarketDataOrderBook(currency + "-EUR", "1").getAsks().get(0).getPrice()
 					.multiply(BigDecimal.valueOf(0.0025));
 		}
 	}
 
 	public BigDecimal createMarketOrderSell() {
 		if (trading) {
-			NewMarketOrderSingle marketOrder = createNewMarketOrder("BTC-EUR", "sell", new BigDecimal(0.001));
+			NewMarketOrderSingle marketOrder = createNewMarketOrder(currency + "-EUR", "sell", new BigDecimal(0.001));
 			Order order = orderService.createOrder(marketOrder);
 			assertTrue(order != null); // make sure we created an order
 			String orderId = order.getId();
@@ -203,7 +205,7 @@ public class PriceTracker {
 					.divide(BigDecimal.valueOf(factor));
 		} else {
 			// return BigDecimal.valueOf(0.02).divide(BigDecimal.valueOf(factor));
-			return this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0).getPrice()
+			return this.marketDataService.getMarketDataOrderBook(currency + "EUR", "1").getAsks().get(0).getPrice()
 					.multiply(BigDecimal.valueOf(0.0025));
 		}
 	}
@@ -244,8 +246,8 @@ public class PriceTracker {
 	public void Run() {
 		ind = ind + 1;
 		try {
-			btcAsk = this.marketDataService.getMarketDataOrderBook("BTC-EUR", "1").getAsks().get(0).getPrice();
-			Marketprice mp = new Marketprice(runId, ind, "BTC", btcAsk.floatValue());
+			btcAsk = this.marketDataService.getMarketDataOrderBook(currency + "-EUR", "1").getAsks().get(0).getPrice();
+			Marketprice mp = new Marketprice(runId, ind, currency, btcAsk.floatValue());
 			marketpriceRepository.save(mp);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -297,7 +299,7 @@ public class PriceTracker {
 			LongStop = Avg;
 			fee = createMarketOrderBuy();
 			LongFees = LongFees.add(fee);
-			transaction = new Trade(transactionId, runId, "LONG", "BTC");
+			transaction = new Trade(transactionId, runId, "LONG", currency);
 			transaction.setIdBuy(marketpriceRepository.findByRunIdAndInd(runId, ind).get(0).getId());
 			transaction.setIndBuy(ind);
 			transaction.setPriceBuy(btcAsk.floatValue());
@@ -346,7 +348,7 @@ public class PriceTracker {
 			ShortStop = Avg;
 			fee = createMarketOrderSell();
 			ShortFees = ShortFees.add(fee);
-			transaction = new Trade(transactionId, runId, "SHORT", "BTC");
+			transaction = new Trade(transactionId, runId, "SHORT", currency);
 			transaction.setIdSell(marketpriceRepository.findByRunIdAndInd(runId, ind).get(0).getId());
 			transaction.setIndSell(ind);
 			transaction.setPriceSell(btcAsk.floatValue());

@@ -18,14 +18,16 @@ public class Runconfiguration {
     int historyLength;
     double historyPercentage;
     int spread;
+    String currency;
 
-    public Runconfiguration(String runId, int historyLength, double historyPercentage, int spread) { 
+    public Runconfiguration(String runId, int historyLength, double historyPercentage, int spread, String currency) { 
 		String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
     	setRunId(runId);
     	setTimeStamp(timeStamp);
     	setHistoryLength(historyLength);
     	setHistoryPercentage(historyPercentage);
     	setSpread(spread);
+    	setCurrency(currency);
     }
     
 	public Integer getId() {
@@ -76,6 +78,14 @@ public class Runconfiguration {
 	public void setTimeStamp(String timeStamp) {
 		this.timeStamp = timeStamp;
 	}
-	
+
+	public String getCurrency() {
+		return currency;
+	}
+
+	public void setCurrency(String currency) {
+		this.currency = currency;
+	}
+
 
 }
