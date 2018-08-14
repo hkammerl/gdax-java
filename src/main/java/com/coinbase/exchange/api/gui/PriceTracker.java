@@ -93,18 +93,20 @@ public class PriceTracker {
 	boolean trading;
 	int historyLength;
 	double historyPercentage;
+	double feePercentage;
 	double factor;
 	int spread;
 	String currency;
 	boolean shortMarket;
 	boolean longMarket;
+	int cycle;
 
 	@Autowired
 	public PriceTracker(@Value("${trader.enabled}") boolean enabled, @Value("${trader.trading}") boolean trading,
 			@Value("${trader.shortMarket}") boolean shortMarket, @Value("${trader.longMarket}") boolean longMarket,
 			@Value("${trader.historyLength}") int historyLength,
 			@Value("${trader.historyPercentage}") double historyPercentage, @Value("${trader.factor}") double factor,
-			@Value("${trader.spread}") int spread, @Value("${trader.currency}") String currency,
+			@Value("${trader.spread}") int spread, @Value("${trader.currency}") String currency,  @Value("${trader.feePercentage}") double feePercentage, @Value("${trader.cycle}") int cycle,
 			MarketDataService marketDataService, OrderService orderService, MarketpriceRepository marketpriceRepository,
 			TradeRepository tradeRepository, RunconfigurationRepository runconfigurationRepository) {
 		log.info("Price Tracker Constructor ..." + enabled);
@@ -118,11 +120,13 @@ public class PriceTracker {
 		this.trading = trading;
 		this.historyLength = historyLength;
 		this.historyPercentage = historyPercentage;
+		this.feePercentage = feePercentage;
 		this.factor = factor;
 		this.spread = spread;
 		this.currency = currency;
 		this.shortMarket = shortMarket;
 		this.longMarket = longMarket;
+		this.cycle = cycle;
 
 		history = new History(historyLength);
 
@@ -187,7 +191,7 @@ public class PriceTracker {
 		} else {
 			// return BigDecimal.valueOf(0.02).divide(BigDecimal.valueOf(factor));
 			return this.marketDataService.getMarketDataOrderBook(currency + "-EUR", "1").getAsks().get(0).getPrice()
-					.multiply(BigDecimal.valueOf(0.0025));
+					.multiply(BigDecimal.valueOf(feePercentage));
 		}
 	}
 
@@ -208,7 +212,7 @@ public class PriceTracker {
 		} else {
 			// return BigDecimal.valueOf(0.02).divide(BigDecimal.valueOf(factor));
 			return this.marketDataService.getMarketDataOrderBook(currency + "-EUR", "1").getAsks().get(0).getPrice()
-					.multiply(BigDecimal.valueOf(0.0025));
+					.multiply(BigDecimal.valueOf(feePercentage));
 		}
 	}
 

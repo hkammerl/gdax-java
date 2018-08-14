@@ -14,10 +14,12 @@ gui:
 trader:
   enabled: true
   trading: false
-  historyLength: 100
+  historyLength: 60
   historyPercentage: 0.1
   factor: 0.001
   spread: 10
   shortMarket: true
   longMarket: true
-  currency: "ETH"
+  currency: "BTC"
+  feePercentage: 0.003
+  cycle: 250
